@@ -92,6 +92,7 @@
   const app = {
     data() {
       return {
+        awsUrl: 'https://SUA_API_GATEWAY.execute-api.us-east-1.amazonaws.com/items',
         loading: false,
         hasWarning: false,
         warningMessage: '',
@@ -129,19 +130,19 @@
       removeItemFromList(item){
         this.loading = true;
         axios
-                .delete('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items/'.concat(item.id))
+                .delete(this.awsUrl.concat('/').concat(item.id))
                 .then(() => {this.loadAllItems()}).finally(() => this.toggleRemoveItemModal());
       },
       saveOrUpdateItem(){
         this.loading = true;
         axios
-                .put('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items', this.item)
+                .put(this.awsUrl, this.item)
                 .then(() => {this.loadAllItems()}).finally(() => this.item = {id: '', name: '', price: 0});
       },
       loadAllItems(){
         this.loading = true;
         axios
-                .get('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items')
+                .get(this.awsUrl)
                 .then(response => {
                   this.items = response.data.Items;
                 }).finally(() => this.loading = false)
