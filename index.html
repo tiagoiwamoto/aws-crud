@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aws - amazing simple crud</title>
+  <link rel="shortcut icon" href="favicon.ico" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="#">
+      <i class="fa-solid fa-school"></i>
+      Aws Crud
+    </a>
+  </div>
+</nav>
+
+<div class="container mb-3" id="app">
+  <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert" v-if="hasWarning">
+    <strong>AVISO</strong> {{ warningMessage }}
+    <button v-on:click="hasWarning = false" type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  <div class="row mt-3">
+    <div class="col-sm-12 col-md-3 col-lg-3">
+      <div class="mb-3">
+        <input v-model="item.name" type="text" class="form-control" placeholder="Nome do item" aria-label="Nome do item" aria-describedby="button-addon1">
+      </div>
+      <div class="mb-3">
+        <input v-model="item.price" type="number" class="form-control" placeholder="10" aria-label="Preço do item" aria-describedby="button-addon2">
+      </div>
+      <button v-on:click="createNewItem" class="btn btn-success w-100" type="button" id="button-addon1">Criar</button>
+    </div>
+    <div class="col-sm-12 col-md-9 col-lg-9">
+      <div class="alert alert-primary w-100" role="alert" v-if="items.length === 0">
+        Você não tem nenhum item, crie um agora mesmo :)
+      </div>
+      <div class="spinner-border" role="status" v-if="loading">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="row" v-if="!loading">
+        <div class="col-sm-12 col-md-4 col-lg-4 mb-2" v-for="item in items">
+          <div class="card">
+            <div class="card-header app-card-header">
+              <div class="row">
+                <div class="col text-start pt-1">{{ item.name }}</div>
+                <div class="col text-end">
+                  <button v-on:click="confirmItemRemove(item)" type="button" class="btn btn-sm btn-warning"><i class="fa-solid fa-trash-can"></i> </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body app-card-body">
+              <p class="card-text">{{ item.price }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="staticBackdropLabel">AVISO</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Confirma a remoção do Item <b>{{ selectedItem.name }}</b>
+          <br />
+          <div class="text-end"><span class="span-card-id">Id do item: {{ selectedItem.id }}</span></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-danger" v-on:click="removeItemFromList(selectedItem)">CONFIRMAR</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer class="app-footer text-center mb-3">
+  <span class="badge bg-primary">AWS - Simple crud</span>
+  <span class="badge bg-secondary">Bootstrap 5.x, Vuejs 3.x, Axios 0.22.x</span>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.19/vue.global.min.js" integrity="sha512-Jhtzkiz8thvQhZEfrKc7OfAjub54EYF977Sox1B6p0C9OnQNIvbaX1G3IZEB9dDN8IXeyT1N+Z39EgyO5C7RMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.22.0/axios.min.js" integrity="sha512-m2ssMAtdCEYGWXQ8hXVG4Q39uKYtbfaJL5QMTbhl2kc6vYyubrKHhr6aLLXW4ITeXSywQLn1AhsAaqrJl8Acfg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  const app = {
+    data() {
+      return {
+        loading: false,
+        hasWarning: false,
+        warningMessage: '',
+        removeModalOpen: false,
+        items: [],
+        item: {
+          id: '',
+          price: 0,
+          name: ''
+        },
+        selectedItem: {}
+      };
+    },
+    mounted: function (){
+      this.loadAllItems();
+    },
+    methods: {
+      createNewItem(){
+        if(this.item.name.length < 3){
+          this.hasWarning = true
+          this.warningMessage = 'O nome do seu item precisa ser maior que 3 caracteres'
+          return;
+        }
+        this.hasWarning = false
+        this.warningMessage = ''
+        const tDate = new Date();
+        this.item.id = tDate.getTime().toString();
+        this.saveOrUpdateItem()
+      },
+      confirmItemRemove(item){
+        console.log(item)
+        this.selectedItem = item
+        this.toggleRemoveItemModal()
+      },
+      removeItemFromList(item){
+        this.loading = true;
+        axios
+                .delete('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items/'.concat(item.id))
+                .then(() => {this.loadAllItems()}).finally(() => this.toggleRemoveItemModal());
+      },
+      saveOrUpdateItem(){
+        this.loading = true;
+        axios
+                .put('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items', this.item)
+                .then(() => {this.loadAllItems()}).finally(() => this.item = {id: '', name: '', price: 0});
+      },
+      loadAllItems(){
+        this.loading = true;
+        axios
+                .get('https://t28t9tmxq0.execute-api.us-east-1.amazonaws.com/items')
+                .then(response => {
+                  this.items = response.data.Items;
+                }).finally(() => this.loading = false)
+      },
+      toggleRemoveItemModal(){
+        const myModalEl = document.querySelector('#staticBackdrop')
+        const modal = bootstrap.Modal.getOrCreateInstance(myModalEl)
+        modal.toggle()
+      }
+    }
+  };
+
+  Vue.createApp(app).mount('#app')
+</script>
+</body>
+</html>
